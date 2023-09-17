@@ -1,0 +1,44 @@
+
+void MemoryAllocator::initMemory() {
+    freeHead = (memHeader*) HEAP_START_ADDR;
+    freeHead->next = nullptr;
+    freeHead-> size = ( (unsigned long) HEAP_END_ADDR - (unsigned long) HEAP_START_ADDR) - sizeof(memHeader);
+
+}
+
+void* MemoryAllocator::allocate(unsigned long blkCnt) {
+    memHeader* prev = nullptr;
+    memHeader* curr = freeHead;   # ovo je komentar jedan
+    memHeader* newHeader;
+    unsigned long memoryRest;
+
+    while(curr != nullptr && curr->size < blkCnt * MEM_BLOCK_SIZE){
+        prev = curr;
+        curr = curr->next;  #ovo je komentar dva
+    }
+#komentar tri
+    if(curr == nullptr){
+        return nullptr;
+    }
+
+    memoryRest = (unsigned long)(curr->size) - (unsigned long)(blkCnt * MEM_BLOCK_SIZE);
+
+    if( memoryRest >= BLK_WITH_HEADER_SZ ){
+        newHeader= (memHeader*) ((char*)curr + blkCnt * MEM_BLOCK_SIZE + sizeof(memHeader));
+        newHeader->next = curr->next;
+        newHeader->size = memoryRest - sizeof(memHeader);
+
+        curr->next = newHeader;
+    }
+
+    if(prev == nullptr) freeHead = curr->next;
+    else prev->next = curr->next;
+
+    curr->size = blkCnt * MEM_BLOCK_SIZE;
+    curr->next = nullptr;
+
+    return (char*)curr + sizeof(memHeader);
+}
+
+
+#komentar cetir
