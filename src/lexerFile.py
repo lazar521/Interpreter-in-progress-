@@ -5,10 +5,11 @@ class Lexer:
     def __init__(self, text):
         self.text = text
         self.charPos = 0
+        self.lineNumber = 1
         self.tokens = []
-        self._makeTokens()
         self.tokenPos = 0
-        self.lineNumber = 0
+
+        self._makeTokens()
 
 
     def getToken(self):
@@ -19,7 +20,7 @@ class Lexer:
         return self.tokens[self.tokenPos]
 
 
-    def advance(self):        # advance() should keep track of lineNumber
+    def advance(self):       
         self.tokenPos += 1
 
 
@@ -84,11 +85,10 @@ class Lexer:
         char = self._getChar()
         tokenStr = char
 
-
         if char == ":":
             nextChar = self._getNextChar()
             if nextChar == ":":
-                tokenStr += nextChar
+                tokenStr = "::"
                 self._advanceChar()
             else:
                 self.handleUnexpectedSymbol()
@@ -104,6 +104,7 @@ class Lexer:
         if char in "!-&|=":
             nextChar = self._getNextChar()
             complexOperator = char + nextChar
+
             if complexOperator in ["!=", "&&", "||", "->", "=="]:
                 tokenStr += nextChar
                 self._advanceChar()
@@ -116,7 +117,7 @@ class Lexer:
         char = self._getChar()
         tokenStr = ""
 
-        while char.isalnum() or char in "_":
+        while char.isalnum() or char == "_":
             tokenStr += char
             self._advanceChar()
             char = self._getChar()
@@ -137,6 +138,12 @@ class Lexer:
 
 
     def _handleBlankSpaces(self):
+        char = self._getChar()
+
+        if char == '\n':
+            self._addToken("\n")
+            self.lineNumber += 1
+
         self._advanceChar()
 
 
@@ -147,7 +154,7 @@ class Lexer:
 
     def handleUnexpectedSymbol(self):
         char = self._getChar()
-        print("Invalid character: \'" + char + "\'")
+        print("Line " + str(self.lineNumber) + ": Invalid character: \'" + char + "\'")
         exit()
 
 
