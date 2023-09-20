@@ -1,10 +1,11 @@
-
 from parserFile import Parser
-
+from lexerFile import Lexer
 
 with open("/home/lazar521/Desktop/Projects/Python/Compiler/inputFile", 'r') as file:
     text = file.read()
 
-parser = Parser(text)
+tokens = Lexer().makeTokens(text)
 
-parser.printTokens()
+parser = Parser()
+ast = parser.parseTokens(tokens)
+

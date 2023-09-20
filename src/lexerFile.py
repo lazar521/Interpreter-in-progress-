@@ -1,65 +1,15 @@
-from tokenFile import Token
-
 class Lexer:
 #------------- PUBLIC SECTION -------------------------------
-    def __init__(self, text):
+    def makeTokens(self, text):
         self.text = text
         self.charPos = 0
         self.lineNumber = 1
         self.tokens = []
-        self.tokenPos = 0
-
-        self._makeTokens()
-
-
-    def getToken(self):
-        if self.tokenPos >= len(self.tokens):
-            print("No more tokens error")
-            return None
-
-        return self.tokens[self.tokenPos]
-
-
-    def advance(self):       
-        self.tokenPos += 1
-
-
-
-    def hasTokens(self):
-        return self.tokenPos < len(self.tokens)
-
-
-#--------------- PRIVATE SECTION ----------------------------
-    def _advanceChar(self):
-        self.charPos += 1
-
-
-    def _isFinished(self):
-        return self.charPos >= len(self.text)
-
-
-    def _addToken(self, tokenStr):
-        newToken = Token(tokenStr)
-        self.tokens.append(newToken)
-
-
-    def _getChar(self):
-        return self.text[self.charPos]
-
-
-    def _getNextChar(self):
-        if self.charPos + 1 < len(self.text):
-            return self.text[self.charPos + 1]
-        else: 
-            return None
-
-
-    def _makeTokens(self):
 
         while not self._isFinished():
             char = self._getChar()
 
-            if char in r"[](){};:":
+            if char in r"[](){};:,":
                 self._tokenizeSpecialSymbol()
 
             elif char in r"-+/*=<>!&|":
@@ -79,6 +29,36 @@ class Lexer:
 
             else:
                 self.handleUnexpectedSymbol()
+
+        return self.tokens
+
+
+#--------------- PRIVATE SECTION ----------------------------
+    def _advanceChar(self):
+        self.charPos += 1
+
+
+    def _isFinished(self):
+        return self.charPos >= len(self.text)
+
+
+    def _addToken(self, newToken):
+        self.tokens.append(newToken)
+        
+
+
+    def _getChar(self):
+        return self.text[self.charPos]
+
+
+    def _getNextChar(self):
+        if self.charPos + 1 < len(self.text):
+            return self.text[self.charPos + 1]
+        else: 
+            return None
+
+
+    
 
     
     def _tokenizeSpecialSymbol(self):

@@ -9,8 +9,7 @@ class AbstractSyntaxTree:
         self.curr = self.root
         self.nodeStack = []
 
-    def nextNode():
-        
+  
 
 
         

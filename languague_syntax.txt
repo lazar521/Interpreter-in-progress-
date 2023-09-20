@@ -1,0 +1,28 @@
+terminals = ID, <NOTHING> 
+
+
+start = 'def' func | expr | 'def' func start | expr start  
+
+
+compStmt = stmt | stmt compStmt 
+
+
+funcTypeSpec = ('void' | 'int') '*'? 
+
+
+func =  funcTypeSpec identifier  '('  arguments  ')'  '{'  comp_stmt  '}'
+
+
+arguments = identifier | identifier, arguments |  <NOTHING>
+
+
+
+	# ovde postoji rekurzija izmedju expr i term i mora se resiti: 
+	# https://supunsetunga.medium.com/writing-a-parser-algorithms-and-implementation-a7c40f46493d
+
+exprStmt = 'let' term =  expr ';'
+
+expr = term  |  term  operator  expr | term operator '(' expr ')'  ---> ovo zapravo necu proveravati nego cu
+																	odmah da krenem u gradjenje postfixnog izraza
+
+
