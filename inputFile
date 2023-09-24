@@ -1,3 +1,24 @@
-def void print(arg1,arg2){
-    
+
+struct kurcina {
+    int x;
+}
+
+void function(){
+    int b;
+}
+
+int print(void arg1,float arg2){
+
+    for(i=3;i<2 + 3 && 3;i++){
+        x=2;
+        struct kurcina peder;
+        while(x > 3){
+            int b;
+            for(x = 2 ; x == 5 ; function()){
+                return ;
+            }
+
+            b = b + 2;
+        }
+    }
 }

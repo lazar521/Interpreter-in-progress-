@@ -1,3 +1,5 @@
+EOF = -1
+
 class Lexer:
 #------------- PUBLIC SECTION -------------------------------
     def makeTokens(self, text):
@@ -30,6 +32,7 @@ class Lexer:
             else:
                 self.handleUnexpectedSymbol()
 
+        self.tokens.append(EOF)
         return self.tokens
 
 
@@ -81,11 +84,11 @@ class Lexer:
         char = self._getChar()
         tokenStr = char
 
-        if char in "!-&|=":
+        if char in "!-&|=+":
             nextChar = self._getNextChar()
             complexOperator = char + nextChar
 
-            if complexOperator in ["!=", "&&", "||", "->", "=="]:
+            if complexOperator in ["!=", "&&", "||", "->", "==","++","--"]:
                 tokenStr += nextChar
                 self._advanceChar()
 

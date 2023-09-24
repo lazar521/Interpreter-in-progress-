@@ -5,7 +5,6 @@ with open("/home/lazar521/Desktop/Projects/Python/Compiler/inputFile", 'r') as f
     text = file.read()
 
 tokens = Lexer().makeTokens(text)
-
 parser = Parser()
 ast = parser.parseTokens(tokens)
 
