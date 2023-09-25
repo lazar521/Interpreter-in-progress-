@@ -1,13 +1,13 @@
 
-struct kurcina {
+struct jedan {
     int x;
 }
 
 void function(){
     int b;
+    return b;
 }
-
-int print(void arg1,float arg2){
+int print(void arg1,int arg2[]){
 
     for(i=3;i<2 + 3 && 3;i++){
         x=2;
@@ -18,7 +18,18 @@ int print(void arg1,float arg2){
                 return ;
             }
 
+            if (x > re) {
+                return ;
+            }
+
             b = b + 2;
         }
+    }
+
+    for (jebnacina = 23 + x && 23 * women; kurcina > pedercina; jebbanje = jebanje - 1 * 23){
+        void picka;
+        picka = kurcina;
+        struct kurcina seljak;
+        picka = seljak->dva;
     }
 }

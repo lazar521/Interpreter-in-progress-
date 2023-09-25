@@ -11,9 +11,9 @@ VariableDeclaration -> TypeSpecifier Identifier ;
                    | TypeSpecifier Identifier [ ConstantExpression ] ;
 
 TypeSpecifier -> int
-              | float
+              | uint
+              | void
               | char
-              | double
               | struct Identifier
 
 FunctionDeclaration -> TypeSpecifier Identifier ( ParameterList ) CompoundStatement
@@ -107,6 +107,12 @@ PostfixExpression -> numericLiteral
                  | Identifier -> Identifier
                  | Identifier ++
                  | Identifier --
-		 | Identifier
+		         | Identifier
 
 
+dodaj pointer declaration
+dodaj operator za dobijanje adrese &
+izbaci float i double i  dodaj uint
+dodaj << i  >> operatore
+narapvi funkciju za parsiranje ArgumentExpressionList
+napravi constantExpression sranje
