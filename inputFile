@@ -1,31 +1,24 @@
 
-struct jedan {
-    int x;
-}
-
 void function(){
-    int b;
+    int b = (32 + 23);
     return b;
 }
 int print(void arg1,int arg2[]){
-
     for(i=3;i<2 + 3 && 3;i++){
         x=2;
         struct kurcina peder;
         while(x > 3){
+            function(jedan,dva);
             int b;
-            for(x = 2 ; x == 5 ; function()){
+            for( void i = *3 ; x == ((-5) + (2 / 3 )) +  &2 ; function(arg1,3,2+11)){
                 return ;
             }
-
             if (x > re) {
                 return ;
             }
-
             b = b + 2;
         }
     }
-
     for (jebnacina = 23 + x && 23 * women; kurcina > pedercina; jebbanje = jebanje - 1 * 23){
         void picka;
         picka = kurcina;

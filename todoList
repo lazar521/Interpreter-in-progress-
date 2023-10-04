@@ -1,8 +1,12 @@
-dodaj pointer declaration
-dodaj operator za dobijanje adrese &
 dodaj << i >> operatore
 
-VAZNO: narapvi funkciju za parsiranje ArgumentExpressionList
+VAZNO: svaki put kad se parsira nesto opciono mora se uraditi rollback ukoliko se vrati null:
+       npr ako se parsira expression  moze se dogoditi da se parsira nepotpun izraz npr 2+a+ i kad parseExpression
+       vrati None paser ce nastaviti dalje umesto da baci gresku. zato mora da se uradi rollback jer expression 
+       nije bio validan  --> GRESKA: ovo se ne moze dogoditi
+
+
 VAZNO: semantic checker mora da proverava da li se u constantExpression nalaze samo literali i mora 
        ograniciti da podaci ne mogu biti tipa 'void' vec samo funkcije 
-VAZNO: kada se pomocu rollback vracamo unazad, prethodne poruke od errorDiagnostic moraju da se resetuju 
+
+VAZNO: dodaj DEF kljucnu rec za funkcije radi lakseg parsiranja

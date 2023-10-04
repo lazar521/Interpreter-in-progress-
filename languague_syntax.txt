@@ -7,13 +7,19 @@ Declaration    -> VariableDeclaration
                | FunctionDeclaration
                | StructDeclaration
 
+	#dodaj DEF ispred deklaracije funkcije i sve je OK bato
+
+CompoundDeclration -> TypeSpecifier Identifier (parameterList) { compoundStatement } 
+                   |  TypeSpecifier Identifier ;
+                   |  TypeSpecifier Identifier [ ConstantExpression ];
+
+
 VariableDeclaration -> TypeSpecifier Identifier ;
                    | TypeSpecifier Identifier [ ConstantExpression ] ;
 
 TypeSpecifier -> int
               | uint
               | void
-              | char
               | struct Identifier
 
 FunctionDeclaration -> TypeSpecifier Identifier ( ParameterList ) CompoundStatement
@@ -47,18 +53,18 @@ Statement     -> ExpressionStatement
 
 ExpressionStatement -> Expression ;
 
-IfStatement   -> if ( Expression ) CompoundStatement
-              | if ( Expression ) CompoundStatement else CompoundStatement
+IfStatement   -> if ( ConditionalExpression ) CompoundStatement
+              | if ( ConditionalExpression ) CompoundStatement else CompoundStatement
 
-WhileStatement -> while ( Expression ) CompoundStatement
+WhileStatement -> while ( ConditionalExpression ) CompoundStatement
 
-ForStatement   -> for ( ForInitializer ; Expression ; ForUpdater ) CompoundStatement
+ForStatement   -> for ( ForInitializer ; ConditionalExpression ; ForUpdater ) CompoundStatement
 
 ForInitializer -> Expression
               | VariableDeclaration
 
 ForUpdater    -> Expression
-              | VariableDeclaration
+
 
 ReturnStatement -> return ; 
 		| return Expression ;
@@ -107,12 +113,9 @@ PostfixExpression -> numericLiteral
                  | Identifier -> Identifier
                  | Identifier ++
                  | Identifier --
-		         | Identifier
+		 | Identifier
 
 
-dodaj pointer declaration
-dodaj operator za dobijanje adrese &
-izbaci float i double i  dodaj uint
-dodaj << i  >> operatore
-narapvi funkciju za parsiranje ArgumentExpressionList
-napravi constantExpression sranje
+
+
+
