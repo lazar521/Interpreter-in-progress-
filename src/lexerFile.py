@@ -1,4 +1,4 @@
-EOF = -1
+from constants import *
 
 class Lexer:
 #------------- PUBLIC SECTION -------------------------------

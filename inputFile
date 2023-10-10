@@ -1,28 +1,19 @@
-
-void function(){
-    int b = (32 + 23);
-    return b;
+struct jedan{
+    int kurac;
+    int kita[function];
 }
-int print(void arg1,int arg2[]){
-    for(i=3;i<2 + 3 && 3;i++){
-        x=2;
-        struct kurcina peder;
-        while(x > 3){
-            function(jedan,dva);
-            int b;
-            for( void i = *3 ; x == ((-5) + (2 / 3 )) +  &2 ; function(arg1,3,2+11)){
-                return ;
+
+func void function(int kurcina,void picka[],struct jedan tri ){
+
+    if (x>2){
+    }
+    else{
+
+        for(var int i = 32; i<50 ; i = i +1){
+        while(jedan == (12+4)){
+                let i = function(1+4,jedan->kitica);
             }
-            if (x > re) {
-                return ;
-            }
-            b = b + 2;
         }
     }
-    for (jebnacina = 23 + x && 23 * women; kurcina > pedercina; jebbanje = jebanje - 1 * 23){
-        void picka;
-        picka = kurcina;
-        struct kurcina seljak;
-        picka = seljak->dva;
-    }
 }
+

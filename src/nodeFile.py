@@ -1,10 +1,14 @@
-
 class Node:
+    nodeAttributes = set()
+
     def __init__(self, nodeType, attributes, values):
         if len(attributes) != len(values):
             print("Attribute list isn't the same length as the value list")
             exit(-1)
-            
+        
+        for attr in attributes:
+            Node.nodeAttributes.add(attr)
+
         self.attributes = attributes
         self.values = values
         self.type = nodeType
@@ -23,7 +27,13 @@ class Node:
     def getType(self):
         return self.type
 
-
+    @staticmethod
+    def printAttributes(nodeType = ".node"):
+        print("----------NODE TYPES-----------")
+        for attr in Node.nodeAttributes:
+            if nodeType in attr:
+                print(attr)
+        print("-------------------------------")
 
     
 

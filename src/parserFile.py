@@ -1,21 +1,15 @@
 from nodeFile import Node
-
-EOF = -1
-
-ERROR = -2
+from constants import *
 
 class Parser:
-    keywords = ["struct","for","while","void","int","uint","char","if","else","return"]
+    keywords = ["struct","for","while","void","int","if","else","return","func","var"]
     
 
     def parseTokens(self, tokens):
         self.tokens = tokens
         self.tokenPos = 0
         self.lineNumber = 1
-        self.checkpoints = []
-        
-        self.errors = []
-        
+        self.errorList = []
 
         while self.hasTokens() and self.getToken() == "\n":
             self.tokenPos += 1
@@ -24,16 +18,8 @@ class Parser:
         return self.parseProgram()
 
 
-    def errorDiagnostic(self,string):
-        error = "Line " + str(self.lineNumber) + ": " + string
-        self.errors.insert(0,error)
-
-
-    def showErrors(self):
-        print("An error has occured")
-        for message in self.errors:
-            print(message)
-
+    def getLineNumber(self):
+        return self.lineNumber
 
     def hasTokens(self):
         return self.getToken() != EOF
@@ -55,29 +41,12 @@ class Parser:
         return self.tokens[self.tokenPos]
 
 
-    def saveCheckpoint(self):
-        self.checkpoints.append(self.tokenPos)
 
-    
-    def rollback(self):
-        if len(self.checkpoints) == 0:
-            print("Parser error: No checkpoints left")
-            exit(-1)
-
-        self.tokenPos = self.checkpoints[-1]
-
-    def removeCheckpoint(self):
-        self.checkpoints.pop()
-
-
-
-    def matchLiteral(self,string):
-        token = self.getToken()
-        #print(token)
-        if token == string:
+    def match(self,string):
+        if self.getToken() == string:
             self.advance()
             return True
-        
+
         return False
 
 
@@ -97,6 +66,10 @@ class Parser:
         self.advance()
         return token
 
+    def matchNum(self):
+        if self.getToken().isnumeric():
+            return True
+        return False
 
     def parseNumericLiteral(self):             
         token = self.getToken()                     
@@ -107,12 +80,17 @@ class Parser:
         
         return None
 
-    def parseConstantExpression(self):
-        return parseConditionalExpression()
 
+    def error(self,message,line,printToken = True):
+        if printToken:
+            self.errorList.insert(0,"Line " + str(line) + " : " + message + " : Unmatched token: " + self.getToken())
+        else:
+            self.errorList.insert(0,"Line " + str(line) + " : " + message)
 
-
-
+    def showErrors(self):
+        print("AN ERROR HAS OCCURED")
+        for error in self.errorList:
+            print (error)
 
 ##################  PARSING  ##################
 
@@ -126,7 +104,7 @@ class Parser:
             return None 
 
         return Node("Program",\
-                    ["declarations"],\
+                    ["declarations.list"],\
                     [declarationList])
 
         
@@ -153,155 +131,164 @@ class Parser:
     #            | StructDeclaration
 
     def parseDeclaration(self):
-        self.saveCheckpoint()
-        
-        for i in range(0,3):
-            if i == 0:
-                decl = self.parseVariableDeclarationStatement()
-            elif i == 1:
-                decl = self.parseFunctionDeclaration()
-            elif i == 2:
-                decl = self.parseStructDeclaration()
-            
-            if decl != None:
-                break
-            self.rollback()
+        line = self.getLineNumber()
+        token = self.getToken()
 
-        self.removeCheckpoint()
-        
-        if decl == None:
-            self.errorDiagnostic("Declaration error: Cannot deduce declaration type")
+        if token == "func":
+            decl = self.parseFunctionDeclaration()
+        elif token == "struct":
+            decl = self.parseStructDeclaration()
+        elif token == "var":
+            decl = self.parseVariableDeclarationStatement()
+        else:
+            decl = None
+            self.error("Cannot deduce declaration type",line)
+            
         return decl
 
 
 
     def parseVariableDeclarationStatement(self):
+        line = self.getLineNumber()
+
         declarataion = self.parseVariableDeclaration()
         if declarataion == None:
             return None
         
-        if not self.matchLiteral(";"):
-            self.errorDiagnostic("Variable declaration: missing ';'")
+        if not self.match(";"):
+            self.error("Variable declaration missing ';'" + line)
             return None
         
         return declarataion
 
 
-    # VariableDeclarationState -> TypeSpecifier Identifier ;
-    #                    | TypeSpecifier Identifier [ ConstantExpression ] ;
-    #                    | TypeSpecifier Identifier = Expression ;
+    # VariableDeclarationStatement ->var TypeSpecifier Identifier 
+    #                    | var TypeSpecifier Identifier [ ConditionalExpression ] 
+    #                    | var TypeSpecifier Identifier = ConditionalExpression 
 
     def parseVariableDeclaration(self):
-        isArray = False
-        expression = None
-        
+        line = self.getLineNumber()
+        expr = None
+        declType = "regular"
+
+        if not self.match("var"):
+            return None
+
         typeSpecifier = self.parseTypeSpecifier()
         if typeSpecifier == None:
+            self.error("Invalid type specifier",line)
             return None
         
         identifier = self.parseIdentifier()
         if identifier == None:
-            return None
-
-        if self.matchLiteral("["):  
-            expression = self.parseConstantExpression()
-            if not self.matchLiteral("]"):
-                self.errorDiagnostic("Variable declaration: missing ']'")
+            self.error("Invalid identifier",line)
+        
+        if self.match("["):  
+            expr = self.parseConditionalExpression()
+            if expr == None:
+                self.error("Invalid expression",line)
                 return None
 
-        elif self.matchLiteral("="):
-            expression = self.parseExpression()
-            if expression == None:
-                self.errorDiagnostic("Variable declaration: missing expression after '='")
+            if not self.match("]"):
+                self.error("Missing ']'",line)
                 return None
-               
+        
+        elif self.match("="):
+            expr = self.parseConditionalExpression()
+            if expr == None:
+                self.error("Invalid expression",line)
+                return None
 
         return Node("VariableDeclaration",\
-                    ["type","identifier","isArray","expression"],\
-                    [typeSpecifier,identifier,isArray,expression])
+                    ["type.node","identifier.lit","expression.node","declarationType.lit"],\
+                    [typeSpecifier,identifier,expr,declType])
         
 
 
     # TypeSpecifier -> int
-    #           | uint
     #           | struct Identifier
     #           | void
-    
 
     def parseTypeSpecifier(self):
-        isPointer = False
+        line = self.getLineNumber()
         identifier = None
         dataType = None
+        indirection = False
 
-        for word in ["int", "char","void","uint","struct"]:
+        for word in ["int","void","struct"]:
             dataType = word
-            if self.matchLiteral(dataType):
+            if self.match(dataType):
                 break
         else:
+            self.error("Unknown type ",line)
             return None
 
         if dataType == "struct":
             identifier = self.parseIdentifier()
-            self.errorDiagnostic("Type specifier error: invalid struct identifier")
             if identifier == None:    
-
+                self.error("Invalid struct identifier",line)
                 return None
 
-        if self.matchLiteral("*"):
-            isPointer = True
-
+        if self.match("*"):
+            indirection = True
 
         return Node("TypeSpecifier",\
-            ["type","identifier","isPointer"],\
-            [dataType,identifier,isPointer])
+            ["type.node","identifier.lit","indirection.lit"],\
+            [dataType,identifier,indirection])
 
 
-    # FunctionDeclaration -> TypeSpecifier Identifier ( ParameterList ) CompoundStatement
+    # FunctionDeclaration -> func TypeSpecifier Identifier ( ParameterList ) CompoundStatement
+
+    # ParameterList -> Parameter
+    #       | Parameter , ParameterList 
 
     def parseFunctionDeclaration(self):
+        line = self.getLineNumber()
+
+        if not self.match("func"):
+            self.error("Function declaration missing 'func'",line)
+            return None
+
         typeSpecifier = self.parseTypeSpecifier()
         if typeSpecifier == None:
+            self.error("Invalid funciton type specifier",line)
             return None
         
         identifier = self.parseIdentifier()
         if identifier == None:
+            self.error("Invalid funciton identifier",line)
             return None
 
-        if not self.matchLiteral("("):
+        if not self.match("("):
+            self.error("Function declaration missing ')'",line)
             return None
         
-        parameterList = self.parseParameterList()    # parameterList is optional so we dont need to check None case
+        parameterList = []
+        paramCnt = 0
+        while not self.match(")"):
+            if paramCnt > 0:
+                    if not self.match(","):
+                        self.error("Parameter list missing ','",line)
+                        return None
 
-        if not self.matchLiteral(")"):
-            return None
+            parameter = self.parseParameter()    # parameterList is optional so we dont need to check None case
+            if parameter == None:
+                self.error("Function declaration missing ')'",line)
+                return None
+            parameterList.append(parameter)
+            paramCnt += 1
+
         
         statements = self.parseCompountStatement()
         if statements == None:
-            self.errorDiagnostic("Function declaration: missing body")
+            self.error("Invalid function body",line,False)
             return None
 
+
         return Node("FunctionDeclaration",\
-                    ["typeSpecifier","identifier","parameterList","body"],\
+                    ["type.node","identifier.lit","parameterList.list","body.node"],\
                     [typeSpecifier,identifier,parameterList,statements])
 
-
-    # ParameterList -> Parameter
-    #       | Parameter , ParameterList 
-    
-    def parseParameterList(self):
-        parameters = []
-        
-        while True:
-            param = self.parseParameter()
-            if param == None:
-                break
-            
-            parameters.append(param)
-
-            if not self.matchLiteral(","):
-                break
-
-        return parameters
 
 
 
@@ -309,136 +296,131 @@ class Parser:
     #       | TypeSpecifier Identifier [ ]
     
     def parseParameter(self):
+        line = self.getLineNumber()
         isArray = False
 
         typeSpecifier = self.parseTypeSpecifier()
         if typeSpecifier == None:
+            self.error("Invalid parameter type",line)
             return None
         
         identifier = self.parseIdentifier()
         if identifier == None:
+            self.error("Invalid parameter identifier",line)
             return None
         
-        if self.matchLiteral("["):
-            if not self.matchLiteral("]"):
+        if self.match("["):
+            if not self.match("]"):
+                self.error("Parameter missing ']'")
                 return None
             isArray = True
         
         
         return Node("Parameter",\
-                    ["typeSpecifier","identifier","isArray"],\
+                    ["type.node","identifier.lit","isArray.lit"],\
                     [typeSpecifier,identifier,isArray])
 
 
-    # StructDeclaration -> struct Identifier { MemberList } ;
+    # StructDeclaration -> struct Identifier { MemberList } 
 
     def parseStructDeclaration(self):
-        if not self.matchLiteral("struct"):
+        line = self.getLineNumber()
+
+        if not self.match("struct"):
+            self.error("Missing 'struct' keyword",line)
             return None
         
         identifier = self.parseIdentifier()
         if identifier == None:
-            self.errorDiagnostic("Struct declaration: missing struct identifier")
+            self.error("Invalid identifier",line)
             return None
         
-        if not self.matchLiteral("{"):
-            self.errorDiagnostic("Struct declaration: missing '}'")
+        if not self.match("{"):
+            self.error("Struct declaration missing '{'",line)
             return None
 
-        memberList = self.parseMemberList()
-        if memberList == []:
-            self.errorDiagnostic("Struct declaration: missing body")
-            return None
+        memberList = []
+        while not self.match("}"):
+            member = self.parseMember()
+            if member == None:
+                self.error("Invalid struct member or missing '}'",line)
+                return None
+            memberList.append(member)
         
-        if not self.matchLiteral("}"):
-            return None
+
 
         return Node("structDeclaration",\
-                    ["identifier","memberList"],\
+                    ["identifier.lit","memberList.list"],\
                     [identifier,memberList])
 
 
     # MemberList    -> Member
     #       | Member MemberList
 
-    def parseMemberList(self):
-        memberList = []
 
-        while True:
-            member = self.parseMember()
-            if member == None:
-                break
-            memberList.append(member)
-        
-        return memberList
-
-        
 
     # Member        -> TypeSpecifier Identifier ;
     #       | TypeSpecifier Identifier [ ConstantExpression ] ;
 
     def parseMember(self):
+        line = self.getLineNumber()
         constantExpression = None
         isArray = False
 
         typeSpecifier = self.parseTypeSpecifier()
         if typeSpecifier == None:
+            self.error("Invalid member type",line)
             return None
         
         identifier = self.parseIdentifier()
         if identifier == None:
+            self.error("Invalid member identifier",line)
             return None
 
 
-        if self.matchLiteral("["):
-            constantExpression = self.parseConstantExpression()
-            if not self.matchLiteral("]"):
+        if self.match("["):
+            if not self.match("]"):
+                constantExpression = self.parseConditionalExpression()
+                if constantExpression == None:
+                    self.error("Invalid expression inside [ ]",line)
+
+            if not self.match("]"):
+                self.error("Member missing ']",line)
                 return None
             isArray = True
 
-        if not self.matchLiteral(";"):
+
+        if not self.match(";"):
+            self.error("Member missing ';'",line)
             return None
 
         return Node("member",\
-                    ["typeSpecifier","identifier","isArray","constantExpression"],\
+                    ["type.node","identifier.lit","isArray.lit","expression.node"],\
                     [typeSpecifier,identifier,isArray,constantExpression])
 
 
     # CompoundStatement -> { StatementList }
-
-    def parseCompountStatement(self):
-        if not self.matchLiteral("{"):
-            return None
-        
-        statementList = self.parseStatementList()
-        if statementList == None:
-            return None
-
-        if not self.matchLiteral("}"):
-            return None
-        
-        return statementList
-
-
         
     # StatementList -> Statement
     #       | Statement StatementList
 
-    def parseStatementList(self):
-        statementList = []
 
-        while True:
-            self.saveCheckpoint()
+    def parseCompountStatement(self):
+        line = self.getLineNumber()
+
+        if not self.match("{"):
+            self.error("Missing '{'",line)
+            return None
+        
+        statementList = []
+        while not self.match("}"):
             statement = self.parseStatement()
             if statement == None:
-                self.rollback()
-                break
-            
-            self.removeCheckpoint()
+                return None
             statementList.append(statement)
-        
-        self.removeCheckpoint()
+       
         return statementList
+
 
 
     # Statement     -> ExpressionStatement
@@ -450,38 +432,37 @@ class Parser:
 
 
     def parseStatement(self):
-        self.saveCheckpoint()
+        line = self.getLineNumber()
+        token = self.getToken()
 
-        for i in range(0,6):
-            if i == 0:
-                stmt = self.parseExpressionStatement()
-            elif i == 1:
-                stmt = self.parseIfStatement()
-            elif i == 2:
-                stmt = self.parseWhileStatement()
-            elif i == 3:
-                stmt = self.parseForStatement()
-            elif i == 4:
-                stmt = self.parseReturnStatement()
-            elif i == 5:
-                stmt = self.parseVariableDeclarationStatement()
-            
-            if stmt != None:
-                break
-            self.rollback()
+        if token == "if":
+            stmt = self.parseIfStatement()
+        elif token == "while":
+            stmt = self.parseWhileStatement()
+        elif token == "for":
+            stmt = self.parseForStatement()
+        elif token == "return":
+            stmt = self.parseReturnStatement()
+        elif token == "var":
+            stmt = self.parseVariableDeclarationStatement()
+        else:
+            stmt = self.parseExpressionStatement()
 
-        self.removeCheckpoint()
+
         return stmt
 
         
     # ExpressionStatement -> Expression ;
 
     def parseExpressionStatement(self):
+        line = self.getLineNumber()
+
         expression = self.parseExpression()
         if expression == None:
             return None
 
-        if not self.matchLiteral(";"):
+        if not self.match(";"):
+            self.error("Expression missing ';'",line)
             return None
         
         return expression
@@ -491,213 +472,202 @@ class Parser:
     #               | if ( Expression ) CompoundStatement else CompoundStatement
 
     def parseIfStatement(self):
-        if not self.matchLiteral("if"):
+        line = self.getLineNumber()
+
+        if not self.match("if"):
+            self.error("Missing 'if' keyword",line)
             return None
         
-        if not self.matchLiteral("("):
-            self.errorDiagnostic("If statement: missing '('")
+        if not self.match("("):
+            self.error("If statement missing '('",line)
             return None
 
         condition = self.parseConditionalExpression()
         if condition == None:
-            self.errorDiagnostic("If statement: Cannot parse condition expression")
+            self.error("If statement invalid condition",line)
             return None
         
-        if not self.matchLiteral(")"):
-            self.errorDiagnostic("If statement: missing ')'")
+        if not self.match(")"):
+            self.error("If statement missing ')'",line)
             return None
         
         body = self.parseCompountStatement()
         if body == None:
-            self.errorDiagnostic("If statement: missing body")
+            self.error("If statement invalid body",line,False)
             return None
 
         
         elseBody = None
-        if self.matchLiteral("else"):
+        if self.match("else"):
             elseBody = self.parseCompountStatement()
-            if elseCompountStatement == None:
-                self.errorDiagnostic("If statement: else missing body")
+            if elseBody == None:
+                self.error("If statement else branch has invalid body",line,False)
                 return None
         
-
     
         return Node("ifStatement",\
-                    ["condition","body","elseBody"],\
+                    ["condition.node","body.node","elseBody.node"],\
                     [condition,body,elseBody])
 
 
     # WhileStatement -> while ( Expression ) CompoundStatement
 
     def parseWhileStatement(self):
-        if not self.matchLiteral("while"):
+        line = self.getLineNumber()
+
+        if not self.match("while"):
+            self.error("Missing 'while' keyword",line)
             return None
         
-        if not self.matchLiteral("("):
-            self.errorDiagnostic("While statement: missing '('")
+        if not self.match("("):
+            self.error("While statement missing '('")
             return None
         
         condition = self.parseConditionalExpression()
         if condition == None:
-            self.errorDiagnostic("While statement: invalid condition")
+            self.error("While statement invalid condition",line,False)
             return None
 
-        if not self.matchLiteral(")"):
-            self.errorDiagnostic("While statement: missing ')'")
+        if not self.match(")"):
+            self.error("While statement missing ')'",line)
             return None
         
         compoundStatement = self.parseCompountStatement()
         if compoundStatement == None:
-            self.errorDiagnostic("While statement: missing body")
+            self.error("While statement invalid body",line,False)
             return None
         
         return Node("whileStatement",\
-                    ["condition","body"],\
+                    ["condition.node","body.node"],\
                     [condition,compoundStatement])
 
 
     # ForStatement   -> for ( <ForInitializer> ; Expression ; ForUpdater ) CompoundStatement
 
     def parseForStatement(self):
-        if not self.matchLiteral("for"):
+        line = self.getLineNumber()
+
+        if not self.match("for"):
+            self.error("Missing 'for' keyword",line)
             return None
 
-        if not self.matchLiteral("("):
-            self.errorDiagnostic("For statement: missing '('")
+        if not self.match("("):
+            self.error("For statement missing '('",line)
             return None
         
-        self.saveCheckpoint()
-        forInitializer = self.parseForInitializer()
-        if forInitializer == None:
-            self.rollback()
 
-        self.removeCheckpoint()
-
-        if not self.matchLiteral(";"):
-            self.errorDiagnostic("For statement: missing ';'")
-            return None
+        if not self.match(";"):
+            forInitializer = self.parseForInitializer()
+            if forInitializer == None:
+                self.error("Invalid for initializer",line)
+            
+            if not self.match(";"):
+                self.error("For stetement missing separator ';' after for condition",line)
+                return None
 
         expression = self.parseExpression()    
         if expression == None:
-            self.errorDiagnostic("For statement: invalid condition")
+            self.error("For statement missing condition",line)
             return None
         
-        if not self.matchLiteral(";"):
-            self.errorDiagnostic("For statement: missing ';'")
+        if not self.match(";"):
+            self.error("For stetement missing separator ';' after for initializer",line)
             return None
 
         forUpdater = self.parseForUpdater()
         if forUpdater == None:
-            self.errorDiagnostic("For statement: invalid ForUpdater expression")
+            self.error("For statement missing for updater",line)
             return None
 
-        if not self.matchLiteral(")"):
-            self.errorDiagnostic("For statement: missing '('")
+        if not self.match(")"):
+            self.error("For statement missing ')'")
             return None
 
         compoundStatement = self.parseCompountStatement()
         if compoundStatement == None:
-            self.errorDiagnostic("For statement: missing body")
+            self.error("For statement invalid body",line)
             return None
-
+ 
         return Node("forStatement",\
-                    ["forInitializer","condition","forUpdater","body"],\
+                    ["forInitializer.node","condition.node","forUpdater.node","body.node"],\
                     [forInitializer,expression,forUpdater,compoundStatement])
 
 
-    # ForInitializer -> Expression
-    #       | VariableDeclaration
+    # ForInitializer ->  VariableDeclaration
 
     def parseForInitializer(self):
-        self.saveCheckpoint()
-        initializer = None
-
-        for i in range(0,2):
-            if i == 0:
-                initializer = self.parseExpression()
-            elif i == 1:
-                initializer = self.parseVariableDeclaration()
-            
-            if initializer != None:
-                break
-            self.rollback()
-        
-        self.removeCheckpoint()
-        return initializer
+        return self.parseVariableDeclaration()
 
 
-        
-
-    # ForUpdater    -> Expression
+    # ForUpdater    -> AssignmentExpression
 
     def parseForUpdater(self):
-        return self.parseExpression()
-
+        return self.parseAssignmentExpression()
 
 
     # ReturnStatement -> return ; 
-    # 		| return Expression ;
+    # 		| return ConditionalExpression ;
 
     def parseReturnStatement(self):
-        if not self.matchLiteral("return"):
-            return None
-        
-        self.saveCheckpoint()
-        expr = self.parseExpression()
-        if expr == None:
-            self.rollback()
-        
-        self.removeCheckpoint()
-        
+        line = self.getLineNumber()
+        returnType = "void"
 
-        if not self.matchLiteral(";"):
-            self.errorDiagnostic("Return statement: missing ';'")
+        if not self.match("return"):
+            self.error("Missing 'return' keyword",line)
             return None
+        
+        if not self.match(";"):
+            expr = self.parseConditionalExpression()
+            if expr == None:
+                self.error("Return statement invalid return value",line)
+                return None
+
+            if not self.match(";"):
+                self.error("Return statement missing ';'",line)
+                return None
 
         return Node("returnStatement",\
-                        ["returnValue"],\
+                        ["returnValue.node"],\
                         [expr])
 
 
 
-    # Expression  -> AssignmentExpression
+    # Expression  -> let AssignmentExpression
     #       | ConditionalExpression
     
     def parseExpression(self): 
-        self.saveCheckpoint()
+        if self.match("let"):
+            return self.parseAssignmentExpression()
 
-        for i in range(0,2):
-            if i == 0:
-                expr = self.parseAssignmentExpression()
-            elif i == 1:
-                expr = self.parseConditionalExpression()
-            
-            if expr != None:
-                break
-            self.rollback()    
-            
-        return expr                
+        return self.parseConditionalExpression()    
 
 
 
     # AssignmentExpression -> Identifier = Expression
 
     def parseAssignmentExpression(self):
+        line = self.getLineNumber()
+
         identifier = self.parseIdentifier()
         if identifier == None:
+            self.error("Assignment expression invalid left operator",line)
             return None
         
-        if not self.matchLiteral("="):
+        if not self.match("="):
+            self.error("Assignment expression missing '='",line)
             return None
         
         expr = self.parseExpression()
         if expr == None:
+            self.error("Assignment expression invalid right operator",line)
             return None
         
         return Node("assingmentExpression",\
-                    ["identifier","expression"],\
+                    ["identifier.lit","expression.node"],\
                     [identifier,expr])
 
+
+    # ConditionalExpression -> LogicalOrExpression
 
     def parseConditionalExpression(self):
         logicalOrExpr = self.parseLogicalOrExpression()
@@ -705,7 +675,7 @@ class Parser:
             return None
         
         return Node("conditionalExpression",\
-                    ["body"],\
+                    ["body.node"],\
                     [logicalOrExpr])
 
     # LogicalOrExpression -> LogicalAndExpression
@@ -716,7 +686,7 @@ class Parser:
         if logicalAndExpr == None:
             return None
         
-        if self.matchLiteral("||"):
+        if self.match("||"):
             operator = "||"
         else:
             return logicalAndExpr
@@ -728,7 +698,7 @@ class Parser:
 
 
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [logicalAndExpr,operator,logicalOrExpr])
         
 
@@ -742,7 +712,7 @@ class Parser:
             return None
         
         operator = None
-        if self.matchLiteral("&&"):
+        if self.match("&&"):
             operator == "&&"
         else:
             return equalityExpr
@@ -753,7 +723,7 @@ class Parser:
             return None
 
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [equalityExpr,operator,logicalAndExpr])
 
         
@@ -765,10 +735,10 @@ class Parser:
         relationalExpr = self.parseRelationalExpression()
         if relationalExpr == None:
             None
-        
-        if self.matchLiteral("=="):
+
+        if self.match("=="):
             operator = "=="
-        elif self.matchLiteral("!="):
+        elif self.match("!="):
             operator = "!="
         else:
             return relationalExpr
@@ -778,7 +748,7 @@ class Parser:
             return None
 
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [relationalExpr,operator,equalityExpr])
     
     
@@ -793,13 +763,13 @@ class Parser:
         if additiveExpr == None:
             return None
 
-        if self.matchLiteral("<"):
+        if self.match("<"):
             operator = "<"
-        elif self.matchLiteral(">"):
+        elif self.match(">"):
             operator = ">"
-        elif self.matchLiteral("<="):
+        elif self.match("<="):
             operator = "<="
-        elif self.matchLiteral(">="):
+        elif self.match(">="):
             operator = ">="
         else:
             return additiveExpr
@@ -809,7 +779,7 @@ class Parser:
             return None
 
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [additiveExpr,operator,relationalExpr])
 
     
@@ -822,9 +792,9 @@ class Parser:
         if multiplicativeExpr == None:
             return None
 
-        if self.matchLiteral("+"):
+        if self.match("+"):
             operator = "+"
-        elif self.matchLiteral("-"):
+        elif self.match("-"):
             operator = "-"
         else:
             return multiplicativeExpr
@@ -834,7 +804,7 @@ class Parser:
             return None
         
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [multiplicativeExpr,operator,additiveExpr])
         
 
@@ -850,11 +820,11 @@ class Parser:
         if unaryExpr == None:
             return None
 
-        if self.matchLiteral("*"):
+        if self.match("*"):
             operator = "*"
-        elif self.matchLiteral("/"):
+        elif self.match("/"):
             operator = "/"
-        elif self.matchLiteral("%"):
+        elif self.match("%"):
             operator = "%"
         else:
             return unaryExpr
@@ -864,7 +834,7 @@ class Parser:
             return None
         
         return Node("binaryExpression",\
-                    ["leftOP","operator","rightOP"],\
+                    ["leftOP.node","operator.lit","rightOP.node"],\
                     [unaryExpr,operator,multiplicativeExpr])
 
 
@@ -872,16 +842,17 @@ class Parser:
     # UnaryExpression -> ! Term
 #                      | & Term
 #                      | * Term
+#                      | - Term
 #                      | Term
 
     def parseUnaryExpression(self):
-        if self.matchLiteral("-"):
+        if self.match("-"):
             operator = "-"
-        elif self.matchLiteral("!"):
+        elif self.match("!"):
             operator = "!"
-        elif self.matchLiteral("&"):
+        elif self.match("&"):
             operator = "&"
-        elif self.matchLiteral("*"):
+        elif self.match("*"):
             operator = "*"
         else:
             operator = None
@@ -894,166 +865,121 @@ class Parser:
             return term
 
         return Node("unaryExpression",\
-                    ["operator","postfixExpression"],\
+                    ["operator.lit","term.node"],\
                     [operator,term])
 
 
     #       Term -> EnclosedTerm
     #               | NumericLiteral
-    #               | FunctionCall
     #               | PostfixExpression
 
     def parseTerm(self):
-        self.saveCheckpoint()
+        token = self.getToken()
 
-        for i in range(0,4):
-            if i == 0:
-                term = self.parseEnclosedTerm()
-            elif i == 1:
-                term = self.parseNumericLiteral()
-            elif i == 2:
-                term = self.parseFunctionCall()
-            elif i == 3:
-                term = self.parsePostfixExpression()
+        if token == "(":
+            return self.parseEnclosedTerm()
 
-            if term != None:
-                break
-            self.rollback()
-        
-        self.removeCheckpoint()
+        if self.matchNum():
+            return self.parseNumericLiteral()
 
-        return term
+        return self.parsePostfixExpression()
 
 
     #   EnclosedTerm -> ( ConditionalExpression )
 
     def parseEnclosedTerm(self):
-        if not self.matchLiteral("("):
+        line = self.getLineNumber()
+
+        if not self.match("("):
+            self.error("Expression missing '('",line)
             return None
         
         conditionalExpr= self.parseConditionalExpression()
         if conditionalExpr == None:
+            self.error("Invalid expression inside ( )",line,False)
             return None
         
-        if not self.matchLiteral(")"):
+        if not self.match(")"):
+            self.error("Expression missing ')'",line)
             return None
         
         return conditionalExpr   
 
+        
 
-    #     PostfixExpression -> DataField
-    #                     | DataField ++
-    #                     | DataField --
+    # PostfixExpression -> Identifier 
+    #             | Identifier [ ConditionalExpression ] 
+    #             | Identifier -> Identifier
+    #             | Identifier . Identifier
+    #             | Identifier ( ArgumentList )
+
 
     def parsePostfixExpression(self):
-        data = self.parseDataField()
-        if data == None:
-            return None
+        line = self.getLineNumber()
 
-        if self.matchLiteral("++"):
-            postfix = "++"
-        elif self.matchLiteral("--"):
-            postfix = "--"
-        else:
-            return data
-        
-        return Node("postfixExpression",\
-                    ["postfix","data"],\
-                    [postfix,data])
-        
-        
-
-    # DataField -> Identifier 
-    #             | Identifier SpecialOperator
-    
-    def parseDataField(self):
         identifier = self.parseIdentifier()
         if identifier == None:
+            self.error("Invalid identifier",line)
             return None
-        
-        specialoperator = self.parseSpecialOperator()
 
-        
-        return Node("fieldSpecification",\
-                    ["identifier","operator"],\
-                    [identifier,specialoperator])
-        
-
-
-    # SpecialOperator   -> [ ConditionalExpression ] 
-    #                      | -> Identifier
-    #                      | . Identifier
-
-    def parseSpecialOperator(self):
         field = None
 
-        if self.matchLiteral("["):
+        if self.match("["):
             field = self.conditionalExpression()
             if field == None:
+                self.error("Invalid expression inside [ ]",line)
                 return None
-            if not self.matchLiteral("]"):
+            if not self.match("]"):
+                self.error("Expression missing ']'",line)
                 return None
             operator = "[]"            
 
-        elif self.matchLiteral("->"):
+        elif self.match("->"):
             field = self.parseIdentifier()
             if field == None:
+                self.error("Invalid field specified after '->' operator ",line)
                 return None
             operator = "->"
        
-        elif self.matchLiteral("."):
+        elif self.match("."):
             field = self.parseIdentifier()
             if field == None:
+                self.error("Invalid field specified after '.' operator",line)
                 return None
             operator = "."
 
+        elif self.match("("):
+            argCnt = 0
+            argumentsList = []
+
+            while not self.match(")"):
+                if argCnt > 0:
+                    if not self.match(","):
+                        self.error("Function call argument list missing ',",line)
+                        return None
+                
+                argument = self.parseArgument()
+                if argument == None:
+                    self.error("Invalid function argument",line)
+                    return None
+                argumentsList.append(argument)
+                argCnt+=1
+
+            field = argumentsList
+            operator = "()"
+
         else:
-            return None
+            operator = None
+            field = None
         
-        return Node("specialOperator",\
-                    ["operator","field"],\
-                    [operator,field])
+        return Node("postfixExpression",\
+                    ["identifier.list","operator.lit","field.node"],\
+                    [identifier,operator,field])
             
 
         
-    #   FunctionCall -> Identifier( ArgumentList)
-
-    def parseFunctionCall(self):
-        identifier = self.parseIdentifier()
-        if identifier == None:
-            return None
-        
-        if not self.matchLiteral("("):
-            return None
-        
-        argumentList = self.parseArgumentList()
-
-        if not self.matchLiteral(")"):
-            return None
-        
-        return Node("FunctionCall",\
-                    ["identifier","argumentList"],\
-                    [identifier,argumentList])
-
-    
     #   ArgumentExpressionlist ->  Argument
     #                          | Argument, ArgumentList
-
-    def parseArgumentList(self):
-        argumentList = []
-
-        while True:
-            argument = self.parseArgument()
-            if argument == None:
-                break
-                
-            if not self.matchLiteral(","):
-                return None
-            
-            argumentList.append(argument)
-        
-        return argumentList
-
 
     # Argument = ConditionalExpression
     
