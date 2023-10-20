@@ -3,15 +3,13 @@ struct jedan{
     int kita[function];
 }
 
-func void function(int kurcina,void picka[],struct jedan tri ){
-
+func void function(int kurcina,void picka[] ){
     if (x>2){
-    }
-    else{
 
         for(var int i = 32; i<50 ; i = i +1){
-        while(jedan == (12+4)){
+        while(jedan == (12+4/2)){
                 let i = function(1+4,jedan->kitica);
+                jedan(picka);
             }
         }
     }

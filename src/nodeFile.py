@@ -13,7 +13,12 @@ class Node:
         self.values = values
         self.type = nodeType
 
-    def getAttribute(self, attribute):
+
+    def getAttributes(self):
+        return self.attributes
+
+
+    def getValue(self, attribute):
         i = 0
         while i < len(self.attributes) and self.attributes[i] != attribute:
             i += 1
@@ -26,6 +31,8 @@ class Node:
 
     def getType(self):
         return self.type
+
+
 
     @staticmethod
     def printAttributes(nodeType = ".node"):

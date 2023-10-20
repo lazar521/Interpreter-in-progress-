@@ -76,7 +76,9 @@ class Parser:
         #print(token)
         if token.isnumeric():
             self.advance()
-            return token 
+            return Node("numericLiteral",\
+                        ["value.lit"],\
+                        [token]) 
         
         return None
 
@@ -233,7 +235,7 @@ class Parser:
             indirection = True
 
         return Node("TypeSpecifier",\
-            ["type.node","identifier.lit","indirection.lit"],\
+            ["type.lit","identifier.lit","indirection.lit"],\
             [dataType,identifier,indirection])
 
 
@@ -286,7 +288,7 @@ class Parser:
 
 
         return Node("FunctionDeclaration",\
-                    ["type.node","identifier.lit","parameterList.list","body.node"],\
+                    ["type.node","identifier.lit","parameterList.list","body.list"],\
                     [typeSpecifier,identifier,parameterList,statements])
 
 
@@ -506,7 +508,7 @@ class Parser:
         
     
         return Node("ifStatement",\
-                    ["condition.node","body.node","elseBody.node"],\
+                    ["condition.node","body.list","elseBody.list"],\
                     [condition,body,elseBody])
 
 
@@ -538,7 +540,7 @@ class Parser:
             return None
         
         return Node("whileStatement",\
-                    ["condition.node","body.node"],\
+                    ["condition.node","body.list"],\
                     [condition,compoundStatement])
 
 
@@ -589,7 +591,7 @@ class Parser:
             return None
  
         return Node("forStatement",\
-                    ["forInitializer.node","condition.node","forUpdater.node","body.node"],\
+                    ["forInitializer.node","condition.node","forUpdater.node","body.list"],\
                     [forInitializer,expression,forUpdater,compoundStatement])
 
 
@@ -875,14 +877,19 @@ class Parser:
 
     def parseTerm(self):
         token = self.getToken()
-
-        if token == "(":
-            return self.parseEnclosedTerm()
+        termType = None
 
         if self.matchNum():
             return self.parseNumericLiteral()
+        elif token == "(":
+            return self.parseEnclosedTerm()   
+        else:
+            return self.parsePostfixExpression()
+        
 
-        return self.parsePostfixExpression()
+
+
+
 
 
     #   EnclosedTerm -> ( ConditionalExpression )
@@ -913,7 +920,6 @@ class Parser:
     #             | Identifier . Identifier
     #             | Identifier ( ArgumentList )
 
-
     def parsePostfixExpression(self):
         line = self.getLineNumber()
 
@@ -923,6 +929,7 @@ class Parser:
             return None
 
         field = None
+        fieldAttribue = "field.lit"
 
         if self.match("["):
             field = self.conditionalExpression()
@@ -932,7 +939,8 @@ class Parser:
             if not self.match("]"):
                 self.error("Expression missing ']'",line)
                 return None
-            operator = "[]"            
+            operator = "[]"        
+            fieldAttribue = "field.node"    
 
         elif self.match("->"):
             field = self.parseIdentifier()
@@ -967,13 +975,14 @@ class Parser:
 
             field = argumentsList
             operator = "()"
+            fieldAttribue = "field.list"
 
         else:
             operator = None
             field = None
         
         return Node("postfixExpression",\
-                    ["identifier.list","operator.lit","field.node"],\
+                    ["identifier.lit","operator.lit",fieldAttribue],\
                     [identifier,operator,field])
             
 

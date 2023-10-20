@@ -12,3 +12,5 @@ parser = Parser()
 ast = SyntaxTree( parser.parseTokens(tokens) )
 
 Node.printAttributes(nodeType=".node")
+
+ast.traverseTree()
